@@ -20,7 +20,7 @@ public partial class CharacterBody2d : CharacterBody2D
     public override void _Ready()
     {
         AnimatedSprite2D = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
-        //  Переконайся, що Loop = OFF для анімації "attack"
+        
     }
 
     public override void _PhysicsProcess(double delta)
@@ -28,22 +28,22 @@ public partial class CharacterBody2d : CharacterBody2D
         Vector2 velocity = Velocity;
         Vector2 direction = GetDirection();
 
-        // ---------- Оновлюємо напрямок персонажа ----------
+        // Оновлюємо напрямок персонажа 
         if (direction.X != 0)
             lastDirectionX = direction.X > 0 ? 1 : -1;
 
-        // ---------- Рух ----------
+        // Рух 
         float currentSpeed = Speed;
         if (isAttacking) currentSpeed *= 0.5f; // повільніше під час атаки
         if (isCrouching) currentSpeed *= 0.5f;
 
         velocity.X = direction.X * currentSpeed;
 
-        // ---------- Гравітація ----------
+        // Гравітація
         if (!IsOnFloor())
             velocity.Y += Gravity.Y;
 
-        // ---------- Стрибок ----------
+        //  Стрибок -
         if (Input.IsPhysicalKeyPressed(Key.Space) && IsOnFloor())
             velocity.Y = JumpForce;
 
@@ -53,10 +53,10 @@ public partial class CharacterBody2d : CharacterBody2D
             StartAttack();
         wasMousePressed = mousePressed;
 
-        // ---------- Анімація + напрямок ----------
+        // Анімація напрямок 
         if (AnimatedSprite2D != null)
         {
-            // Flip залежить від руху або останнього напрямку
+            
             if (velocity.X != 0)
     AnimatedSprite2D.FlipH = velocity.X > 0;
 else

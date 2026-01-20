@@ -1,119 +1,56 @@
-using System;
 using Godot;
 
-public partial class CharacterBody2d : CharacterBody2D
+public partial class Ball : RigidBody2D
 {
-    private const float Speed = 150.0f;
-    [Export] public float JumpForce = -600.0f;
-    private Vector2 Gravity = new Vector2(0, 50f);
+    private Area2D area;
+    private Sprite2D sprite;
 
-    private AnimatedSprite2D AnimatedSprite2D;
-    private bool isCrouching = false;
-    private bool isAttacking = false;
+    private Texture2D textureClose;
+    private Texture2D textureFar;
 
-    private bool wasMousePressed = false;
-
-    private int attackDamage = 5;
-    private float attackDuration = 0.25f; // 5 кадрів
-    private int lastDirectionX = 1; // 1 = вправо, -1 = вліво
+    private bool playerInside = false;
 
     public override void _Ready()
     {
-        AnimatedSprite2D = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
-        
+        AddToGroup("balls");
+
+        area = GetNode<Area2D>("Area2D");
+        sprite = GetNode<Sprite2D>("Sprite2D");
+
+        area.BodyEntered += OnBodyEntered;
+        area.BodyExited += OnBodyExited;
+
+        textureClose = GD.Load<Texture2D>("res://assets/Spritesheets/Balls/red/smile.png");
+        textureFar   = GD.Load<Texture2D>("res://assets/Spritesheets/Balls/green/smile.png");
+
+        sprite.Texture = textureFar;
     }
 
-    public override void _PhysicsProcess(double delta)
+    private void OnBodyEntered(Node body)
     {
-        Vector2 velocity = Velocity;
-        Vector2 direction = GetDirection();
-
-        // Оновлюємо напрямок персонажа 
-        if (direction.X != 0)
-            lastDirectionX = direction.X > 0 ? 1 : -1;
-
-        // Рух 
-        float currentSpeed = Speed;
-        if (isAttacking) currentSpeed *= 0.5f; // повільніше під час атаки
-        if (isCrouching) currentSpeed *= 0.5f;
-
-        velocity.X = direction.X * currentSpeed;
-
-        // Гравітація
-        if (!IsOnFloor())
-            velocity.Y += Gravity.Y;
-
-        //  Стрибок -
-        if (Input.IsPhysicalKeyPressed(Key.Space) && IsOnFloor())
-            velocity.Y = JumpForce;
-
-        // ---------- Атака ----------
-        bool mousePressed = Input.IsMouseButtonPressed(MouseButton.Left);
-        if (mousePressed && !wasMousePressed && !isAttacking)
-            StartAttack();
-        wasMousePressed = mousePressed;
-
-        // Анімація напрямок 
-        if (AnimatedSprite2D != null)
+        if (body is CharacterBody2D)
         {
-            
-            if (velocity.X != 0)
-    AnimatedSprite2D.FlipH = velocity.X > 0;
-else
-    AnimatedSprite2D.FlipH = lastDirectionX > 0;
-
-            if (isAttacking)
-            {
-                if (AnimatedSprite2D.Animation != "attack")
-                    AnimatedSprite2D.Animation = "attack";
-            }
-            else
-            {
-                if (Math.Abs(velocity.X) > 0.01f)
-                {
-                    if (AnimatedSprite2D.SpriteFrames.HasAnimation("walk"))
-                        AnimatedSprite2D.Animation = "walk";
-                }
-                else
-                {
-                    if (AnimatedSprite2D.SpriteFrames.HasAnimation("idle"))
-                        AnimatedSprite2D.Animation = "idle";
-                }
-            }
+            playerInside = true;
+            sprite.Texture = textureClose;
         }
-
-        Velocity = velocity;
-        MoveAndSlide();
     }
 
-    private async void StartAttack()
+    private void OnBodyExited(Node body)
     {
-        isAttacking = true;
-
-        if (AnimatedSprite2D.Animation != "attack")
-            AnimatedSprite2D.Animation = "attack";
-
-        AnimatedSprite2D.Play();
-
-        GD.Print($"Удар! Урон: {attackDamage} у напрямку {(lastDirectionX > 0 ? "вправо" : "вліво")}");
-
-        await ToSignal(GetTree().CreateTimer(attackDuration), "timeout");
-
-        isAttacking = false;
-
-        if (AnimatedSprite2D.SpriteFrames.HasAnimation("idle") && Velocity.X == 0)
-            AnimatedSprite2D.Animation = "idle";
+        if (body is CharacterBody2D)
+        {
+            playerInside = false;
+            sprite.Texture = textureFar;
+        }
     }
 
-    public Vector2 GetDirection()
+    // 🔥 викликається персонажем під час атаки
+    public void TryHit()
     {
-        Vector2 direction = new Vector2();
-
-        if (Input.IsPhysicalKeyPressed(Key.W)) direction.Y -= 1;
-        if (Input.IsPhysicalKeyPressed(Key.S)) direction.Y += 1;
-        if (Input.IsPhysicalKeyPressed(Key.A)) direction.X -= 1;
-        if (Input.IsPhysicalKeyPressed(Key.D)) direction.X += 1;
-
-        return direction;
+        if (playerInside)
+        {
+            GD.Print("Ball destroyed");
+            QueueFree();
+        }
     }
-}  
+}
